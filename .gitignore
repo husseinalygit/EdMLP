@@ -1,0 +1,9 @@
+hyperparam_tunning/*
+DLoader/UCIdata/*
+stac/* 
+temp/*
+DLoader/__pycache__/*
+Models/__pycache__/*
+results/*
+notebooks/*
+__pycache__/*
