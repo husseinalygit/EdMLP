@@ -17,13 +17,12 @@ import time
 import random
 from sklearn.model_selection import RepeatedKFold
 from Models.backprob import MLP_model , EDBP
-# from Models.boosting import AdaBoosting
 import os 
 from Models.LWRVFL import LWTEDBP
 from torch.multiprocessing import Pool, set_start_method
 # util functions 
 from Models.edRVFL import  BP_WPRVFL
-
+import argparse 
 
 def classification_eval(true, predict, tag = None , consol=False): 
 
@@ -92,7 +91,7 @@ def get_run_ids(datasets, models):
 
 # evaluators 
 
-def P_EdBP_creator(X_train , y_train , X_val , y_val , params , seed , check_point_loc , device):
+def EdMLP_creator(X_train , y_train , X_val , y_val , params , seed , check_point_loc , device):
         model = EDBP(classes=y_train.shape[1], nodes = params['nodes']  ,
                     layers=params['layers'] , epochs = 100,
                     learning_rate = params['learning_rate'],
@@ -117,7 +116,7 @@ def P_EdBP_creator(X_train , y_train , X_val , y_val , params , seed , check_poi
 
         return model 
 
-def P_EdSNN_creator(X_train , y_train , X_val , y_val , params , seed , check_point_loc , device):
+def EdSNN_creator(X_train , y_train , X_val , y_val , params , seed , check_point_loc , device):
         model = EDBP(classes=y_train.shape[1], nodes = params['nodes']  ,
                     layers=params['layers'] , epochs = 100,
                     learning_rate = params['learning_rate'],
@@ -142,7 +141,7 @@ def P_EdSNN_creator(X_train , y_train , X_val , y_val , params , seed , check_po
 
         return model 
 
-def P_EdBP_Boost_creator(X_train , y_train , X_val , y_val , params , seed , check_point_loc , device):
+def EdMLP_Boost_creator(X_train , y_train , X_val , y_val , params , seed , check_point_loc , device):
         model = EDBP(classes=y_train.shape[1], nodes = params['nodes']  ,
                     layers=params['layers'] , epochs = 100,
                     learning_rate = params['learning_rate'],
@@ -167,7 +166,7 @@ def P_EdBP_Boost_creator(X_train , y_train , X_val , y_val , params , seed , che
 
         return model 
 
-def P_EdSNN_Boost_creator(X_train , y_train , X_val , y_val , params , seed , check_point_loc , device):
+def EdSNN_Boost_creator(X_train , y_train , X_val , y_val , params , seed , check_point_loc , device):
         model = EDBP(classes=y_train.shape[1], nodes = params['nodes']  ,
                     layers=params['layers'] , epochs = 100,
                     learning_rate = params['learning_rate'],
@@ -192,7 +191,7 @@ def P_EdSNN_Boost_creator(X_train , y_train , X_val , y_val , params , seed , ch
 
         return model 
 
-def P_EdBP_DLHO_creator(X_train , y_train , X_val , y_val , params , seed , check_point_loc , device):
+def EdMLP_DLHO_creator(X_train , y_train , X_val , y_val , params , seed , check_point_loc , device):
         model = EDBP(classes=y_train.shape[1], nodes = params['nodes']  ,
                     layers=params['layers'] , epochs = 100,
                     learning_rate = params['learning_rate'],
@@ -217,7 +216,7 @@ def P_EdBP_DLHO_creator(X_train , y_train , X_val , y_val , params , seed , chec
 
         return model 
 
-def P_EdSNN_DLHO_creator(X_train , y_train , X_val , y_val , params , seed , check_point_loc , device):
+def EdSNN_DLHO_creator(X_train , y_train , X_val , y_val , params , seed , check_point_loc , device):
         model = EDBP(classes=y_train.shape[1], nodes = params['nodes']  ,
                     layers=params['layers'] , epochs = 100,
                     learning_rate = params['learning_rate'],
@@ -242,7 +241,7 @@ def P_EdSNN_DLHO_creator(X_train , y_train , X_val , y_val , params , seed , che
 
         return model 
 
-def P_EdBP_DLHO_EW_creator(X_train , y_train , X_val , y_val , params , seed , check_point_loc , device):
+def EdMLP_DLHO_EW_creator(X_train , y_train , X_val , y_val , params , seed , check_point_loc , device):
         model = EDBP(classes=y_train.shape[1], nodes = params['nodes']  ,
                     layers=params['layers'] , epochs = 100,
                     learning_rate = params['learning_rate'],
@@ -267,7 +266,7 @@ def P_EdBP_DLHO_EW_creator(X_train , y_train , X_val , y_val , params , seed , c
 
         return model 
 
-def P_EdSNN_DLHO_EW_creator(X_train , y_train , X_val , y_val , params , seed , check_point_loc , device):
+def EdSNN_DLHO_EW_creator(X_train , y_train , X_val , y_val , params , seed , check_point_loc , device):
         model = EDBP(classes=y_train.shape[1], nodes = params['nodes']  ,
                     layers=params['layers'] , epochs = 100,
                     learning_rate = params['learning_rate'],
@@ -292,7 +291,7 @@ def P_EdSNN_DLHO_EW_creator(X_train , y_train , X_val , y_val , params , seed , 
 
         return model 
 
-def P_EdBP_DLHO_Boost_creator(X_train , y_train , X_val , y_val , params , seed , check_point_loc , device):
+def EdMLP_DLHO_Boost_creator(X_train , y_train , X_val , y_val , params , seed , check_point_loc , device):
         
         model = EDBP(classes=y_train.shape[1], nodes = params['nodes']  ,
                     layers=params['layers'] , epochs = 100,
@@ -318,7 +317,7 @@ def P_EdBP_DLHO_Boost_creator(X_train , y_train , X_val , y_val , params , seed 
 
         return model 
 
-def P_EdSNN_DLHO_Boost_creator(X_train , y_train , X_val , y_val , params , seed , check_point_loc , device):
+def EdSNN_DLHO_Boost_creator(X_train , y_train , X_val , y_val , params , seed , check_point_loc , device):
         model = EDBP(classes=y_train.shape[1], nodes = params['nodes']  ,
                     layers=params['layers'] , epochs = 100,
                     learning_rate = params['learning_rate'],
@@ -343,7 +342,7 @@ def P_EdSNN_DLHO_Boost_creator(X_train , y_train , X_val , y_val , params , seed
 
         return model 
 
-def P_MLP_creator(X_train , y_train , X_val , y_val , params , seed , check_point_loc , device):
+def MLP_creator(X_train , y_train , X_val , y_val , params , seed , check_point_loc , device):
         model = MLP_model(classes=y_train.shape[1], nodes = params['nodes'],
                         layers = params['layers'], epochs = 100,
                         learning_rate = params['learning_rate'],  l1_weight = params['l1_weight'],
@@ -365,7 +364,7 @@ def P_MLP_creator(X_train , y_train , X_val , y_val , params , seed , check_poin
         
         return model
 
-def P_SNN_creator(X_train , y_train , X_val , y_val , params , seed , check_point_loc , device):
+def SNN_creator(X_train , y_train , X_val , y_val , params , seed , check_point_loc , device):
         model = MLP_model(classes=y_train.shape[1], nodes = params['nodes'],
                         layers = params['layers'], epochs = 100,
                         learning_rate = params['learning_rate'],  l1_weight = params['l1_weight'],
@@ -386,47 +385,23 @@ def P_SNN_creator(X_train , y_train , X_val , y_val , params , seed , check_poin
         #             epochs=best_epochs)
         return model 
 
-def P_ABoost_creator(X_train , y_train , X_val , y_val , params , seed , check_point_loc , device):
-
-        model = AdaBoosting(n_estimators = 100, learning_rate = 1 , random_state = seed)
-
-        model.train(X=X_train, y=y_train)
-
-        # # combine train and val
-        # X = np.concatenate((X_train , X_val) , axis=0)
-        # y = np.concatenate((y_train , y_val) , axis=0)
-
-        # model.train(X=torch.tensor(X).float(),
-        #             y=torch.tensor(y).float(),  
-        #             epochs=best_epochs)
-
-        return model 
-
-def P_LWTEDBP_DLHO_Boost_creator(X_train , y_train , X_val , y_val , params, seed , check_point_loc , device):
+def P_LWTEDBP_DLHO_Boost_creator(X_train , y_train , X_val , y_val , params, epochs, seed , check_point_loc , device):
    
-    model = LWTEDBP(classes=y_train.shape[1], epochs = 100 , gama = 1 , beta = 0 , bn_learnable=True , track_running_stats=True , seed = seed , verbose = 2, est_weight = True , HDL = True , OHL = True, conf_weights = True , boost = True , bootstrap = False, output_loc =check_point_loc , snn = False, device=device)
+    model =  LWTEDBP(classes=y_train.shape[1], epochs = epochs , gama = 1 , beta = 0 , bn_learnable=True , track_running_stats=True , verbose =2, est_weight = True ,  conf_weights = True ,boost = True , bootstrap = False, output_loc =check_point_loc , snn = False, device=device)
 
     train_weights = None
     val_weights = None
 
-    for layer_id in range(len(params)) : 
-        # params[layer_id]['HDL'] = True
-        # params[layer_id]['ODL'] = True
-        _ , _ , _ , _ =  model.train_layer(X=X_train, y=y_train, X_val = X_val, y_val = y_val, params = params[layer_id], append = True )
+    for layer_id in range(len(params)) :
+        _, _, _ , _ , layer_train_weights , layer_val_weights = model.train_layer(X=X_train, y=y_train, X_val = X_val, y_val = y_val, params = params[layer_id], train_sample_weight = train_weights , val_sample_weight = val_weights , append = True, seed=seed)
 
-        # train_weights = layer_train_weights
-        # val_weights = layer_val_weights       
+        train_weights = layer_train_weights
+        val_weights = layer_val_weights       
 
-        
-    # X = np.concatenate((X_train , X_val) , axis=0)
-    # y = np.concatenate((y_train , y_val) , axis=0)
 
-    # model.train(X=X, y=y , epochs=best_epochs )
-    # model.set_estimator_weights(estimator_weights)
+    return model
 
-    return model 
-
-def P_EdRVFL_creator(X_train , y_train , X_val , y_val , params, seed , check_point_loc , device) :
+def EdRVFL_creator(X_train , y_train , X_val , y_val , params, seed , check_point_loc , device) :
 
         bb_rvfl = BP_WPRVFL(classes=y_train.shape[1],
                         args={'C':params['C'], 'N':params['N'] } ,
@@ -446,7 +421,7 @@ def P_EdRVFL_creator(X_train , y_train , X_val , y_val , params, seed , check_po
 
         return bb_rvfl
 
-def model_evaluator(dloader , params, model_func,  check_point_loc, reps=5, device="cuda", console=False , random_seed= 41):
+def model_evaluator(dloader , params, model_func,  check_point_loc, reps=5, device="cuda", console=False , random_seed= 41, is_LW=False , epochs=100):
 
     metrics = []
     seeds = gen_ran_arr(reps , random_seed )
@@ -457,8 +432,10 @@ def model_evaluator(dloader , params, model_func,  check_point_loc, reps=5, devi
         for rep_idx in range(reps):
             torch.cuda.empty_cache()
 
-            model = model_func(X_train= X_train , y_train= y_train , X_val = X_val , y_val = y_val, params= params, seed = seeds[rep_idx], check_point_loc = check_point_loc , device=device)
-
+            if is_LW : 
+                model = model_func(X_train= X_train , y_train= y_train , X_val = X_val , y_val = y_val, params= params, epochs = epochs, seed = seeds[rep_idx], check_point_loc = check_point_loc , device=device)
+            else : 
+                model = model_func(X_train= X_train , y_train= y_train , X_val = X_val , y_val = y_val, params= params, seed = seeds[rep_idx], check_point_loc = check_point_loc , device=device)
 
             train_pred = model.predict(X_train) 
             val_pred = model.predict(X_val)
@@ -475,52 +452,56 @@ def model_evaluator(dloader , params, model_func,  check_point_loc, reps=5, devi
 
 
 model_func_map = {
-    "P_SNN" : P_SNN_creator,
-    "P_MLP" : P_MLP_creator,
-    "P_EdBP"  : P_EdBP_creator,
-    "P_EdSNN" : P_EdSNN_creator,
-    "P_EdBP_DLHO"  : P_EdBP_DLHO_creator,
-    "P_EdSNN_DLHO" : P_EdSNN_DLHO_creator,
-    "P_EdBP_DLHO_EW" : P_EdBP_DLHO_EW_creator,
-    "P_EdSNN_DLHO_EW" : P_EdSNN_DLHO_EW_creator, 
-    "P_EdBP_Boost"  : P_EdBP_Boost_creator,
-    "P_EdSNN_Boost" : P_EdSNN_Boost_creator,
-    "P_EdBP_DLHO_Boost"  : P_EdBP_DLHO_Boost_creator,
-    "P_EdSNN_DLHO_Boost" : P_EdSNN_DLHO_Boost_creator,
-    "P_LWTEDBP_DLHO_Boost" :P_LWTEDBP_DLHO_Boost_creator, 
-    "P_ABoost" : P_ABoost_creator,
-    "EdRVFL" : P_EdRVFL_creator,
+    "SNN" : SNN_creator,
+    "MLP" : MLP_creator,
+    "EdMLP"  : EdMLP_creator,
+    "EdSNN" : EdSNN_creator,
+    "EdMLP_DLHO"  : EdMLP_DLHO_creator,
+    "EdSNN_DLHO" : EdSNN_DLHO_creator,
+    "EdMLP_DLHO_EW" : EdMLP_DLHO_EW_creator,
+    "EdSNN_DLHO_EW" : EdSNN_DLHO_EW_creator, 
+    "EdMLP_Boost"  : EdMLP_Boost_creator,
+    "EdSNN_Boost" : EdSNN_Boost_creator,
+    "EdMLP_DLHO_Boost"  : EdMLP_DLHO_Boost_creator,
+    "EdSNN_DLHO_Boost" : EdSNN_DLHO_Boost_creator,
+    "LEdMLP_DLHO_Boost" : P_LWTEDBP_DLHO_Boost_creator, 
+    "BLEdMLP_DLHO_Boost" : P_LWTEDBP_DLHO_Boost_creator, 
+
+    "EdRVFL" : EdRVFL_creator,
 
 }
 
-
 if __name__ == "__main__" : 
+    supported_models = model_func_map.keys()
+    parser = argparse.ArgumentParser(description='Model Evaluator Script')
+    parser.add_argument('--run_id', type=str, default="auto", help='Run ID of the hyperparamter tunning, leave auto to use the most recent Id')
+    parser.add_argument('--device', type=str, default="cpu", help='Device to run the model on')
+    parser.add_argument('--model', type=str, nargs="+", required=True, choices=supported_models, help='Model to use')
+    parser.add_argument('--dataset', type=str, nargs="+", help='Dataset to use')
+    parser.add_argument('--random_seed', type=int, default=41, help='Random seed for the evaluation')
+    parser.add_argument('--n_jobs', type=int, default=1, help='Number of parallel jobs to run')
+    parser.add_argument('--epochs', type=int, default=100, help='Training Epochs for used For Layer wise algorithms only, otherwise ignored.')
+    parser.add_argument('--eval_reps', type=int, default=5, help='Number of repetitions for evaluation')
 
-    
+    args = parser.parse_args()
 
-
-    # models= ["P_MLP", "P_SNN" , "P_EdBP_DLHO" , "P_EdSNN_DLHO"]
-    # params_models = ["P_EdBP" , 'P_EdSNN' , "P_EdBP_Boost" , 'P_EdSNN_Boost']
-    # models= ["P_EdBP" , 'P_EdSNN' , "P_EdBP_Boost" , 'P_EdSNN_Boost']
-
-    # params_models = ["P_LWTEDBP_DLHO_Boost"]
-    # models = ["P_LWTEDBP_DLHO_Boost"]
-
-    datasets = ["abalone" , "arrhythmia"  "cardiotocography-10clases" , "cardiotocography-3clases" , "chess-krvkp"  , "congressional-voting" , "contrac" , "glass" , "molec-biol-splice" , "monks-3" , "musk-2" ,"oocytes_trisopterus_states_5b", "spambase" , "statlog-image" , "statlog-landsat","wall-following" , "waveform" , "waveform-noise", "breast-cancer-wisc-prog" , "breast-tissue" , "conn-bench-sonar-mines-rocks" , "conn-bench-vowel-deterding" , "hill-valley" , "ionosphere" , "iris" , "oocytes_merluccius_nucleus_4d" , "oocytes_merluccius_states_2f" , "oocytes_trisopterus_nucleus_2f"  , "parkinsons" , "plant-shape" , "ringnorm" ,  "seeds" , "synthetic-control" , "twonorm" , "vertebral-column-2clases" , "vertebral-column-3clases"]
-
-
-    model_name = "P_LWTEDBP_DLHO_Boost"
+    if args.dataset is None :
+        datasets = ["abalone" , "arrhythmia" , "cardiotocography-10clases" , "cardiotocography-3clases" , "chess-krvkp"  , "congressional-voting" , "contrac" , "glass" , "molec-biol-splice" , "monks-3" , "musk-2" ,"oocytes_trisopterus_states_5b" , "spambase" , "statlog-image" , "statlog-landsat" ,"wall-following" , "waveform" , "waveform-noise", "breast-cancer-wisc-prog" , "breast-tissue" , "conn-bench-sonar-mines-rocks" , "conn-bench-vowel-deterding" , "hill-valley" , "ionosphere" , "iris" , "oocytes_merluccius_nucleus_4d" , "oocytes_merluccius_states_2f" , "oocytes_trisopterus_nucleus_2f" , "oocytes_trisopterus_states_5b" , "parkinsons" , "plant-shape" , "ringnorm" ,  "seeds" , "synthetic-control" , "twonorm" , "vertebral-column-2clases" , "vertebral-column-3clases"]
+    else : 
+        datasets = args.dataset
 
 
 
-    device="cuda:0"
-
-    run_id = "10_07_2023T_12_47"
-    
+    models = args.model
+    device= args.device
+    run_id = args.run_id
+    random_seed = args.random_seed
     session_id = datetime.datetime.now().strftime("%d_%m_%YT_%H_%M")
 
+    LW_models = ["BLEdMLP_DLHO_Boost" , "LEdMLP_DLHO_Boost"] 
+
     if run_id == "auto" : 
-        run_ids , consistant = get_run_ids(datasets , model_name)
+        run_ids , consistant = get_run_ids(datasets , [model_name])
         if consistant : 
             output_file = f"results_r{run_ids[datasets[0]][model_name]}_consistant_s{session_id}.csv"
         else : 
@@ -532,10 +513,13 @@ if __name__ == "__main__" :
     print(f"Run ID : {run_id}")
     print(f"Session ID : {session_id}")
 
-    pool = Pool(16)
+    pool = Pool(args.n_jobs)
     pool_requests = {}
     for idx,  dataset_name in enumerate(datasets) : 
-        device = f"cuda:{idx%2}"
+        if device == "cuda" : 
+            device = f"cuda:{idx%2}"
+        else : 
+            device = args.device
         pool_requests[dataset_name] = []
         loader = UCIDataset(dataset_name, parent="DLoader/UCIdata")
 
@@ -550,7 +534,10 @@ if __name__ == "__main__" :
             os.makedirs(check_point_loc)
 
         try : 
-            pool_res = pool.apply_async(model_evaluator, (loader, best_params['params'] , model_func_map[model_name],  check_point_loc, 5, device, True , 41))
+            if model_name in LW_models :
+                pool_res = pool.apply_async(model_evaluator, (loader, best_params['params'] , model_func_map[model_name],  check_point_loc, args.eval_reps, device, True , random_seed, True, args.epochs))
+            else : 
+                pool_res = pool.apply_async(model_evaluator, (loader, best_params['params'] , model_func_map[model_name],  check_point_loc, args.eval_reps, device, True , random_seed))
 
             pool_requests[dataset_name].append(pool_res)
         except Exception as e : 
