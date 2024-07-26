@@ -36,6 +36,11 @@ UCIdata/
 ## Hyperparameter Tuning Parameters
 
 **Box Models (Box_HBO):**
+Example Run : 
+```
+python Box_HPO.py --dataset abalone --model EdSNN_DLHO_Boost --device cpu --n_trials 1 --tunning_reps 0 --eval_reps 5 --random_state 41 --n_jobs 1
+```
+Parameters : 
 - `--dataset`: Name of the UCI dataset(s) to use (can be multiple)
 - `--model`: Model to use (choices: `EdMLP`, `EdSNN`, `EdMLP_DLHO`, `EdSNN_DLHO`, `MLP`, `SNN`, `EdMLP_Boost`, `EdSNN_Boost`, `EdMLP_DLHO_Boost`, `EdSNN_DLHO_Boost`, `EdRVFL`)
 - `--device`: Device to use ('cpu' or 'cuda')
@@ -47,6 +52,11 @@ UCIdata/
 - `--run_id`: Run ID (set a value if you want to run multiple optimization rounds with the same ID, otherwise leave blank)
 
 **Layer-Wise Tuning Models (LW_HPO):**
+Example Run : 
+```
+python LW_HPO.py --dataset abalone --model LEdMLP_DLHO_Boost  --device cpu --n_trials 1 --tunning_reps 0 --eval_reps 5 --random_state 41 --n_jobs 1 --epochs 1 --max_layers 2 --layer_patience 0 
+```
+Parameters : 
 - `--dataset`: Name of the UCI dataset(s) to use (can be multiple)
 - `--model`: Model to use (choices: `LEdMLP_DLHO_Boost`, `BLEdMLP_DLHO_Boost`)
 - `--device`: Device to use ('cpu' or 'cuda')
