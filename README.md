@@ -60,14 +60,15 @@ UCIdata/
 - `--max_layers`: Maximum number of layers to train
 - `--run_id`: Run ID (set a value if you want to run multiple optimization rounds with the same ID, otherwise leave blank)
 
-The results of the hyperparameter tuning will be stored in a new folder named `results` in the following format:
+The best hyperparameters will be saved under `hyperparam_tunning/{database_name}/{model_name}/best_{runid}.pkl`.
+
+The evaluation results after the tuning process will be stored in a new folder named `results` in the following format:
 - `"results/results_r{run_id}_s{session_id}.csv"`
 - The `run_id` is the hypertuning operation ID, which can be used to retrieve the model later after the best hyperparameters are saved.
 - The `session_id` is used to record the timestamp at which the session is run, which is important when you want to run the same optimization operation with the same `run_id` on multiple sessions.
 
 ## Evaluation
-You can use the `evaluators.py` script to run the evaluation of the model:
-
+If you want to evaluate a previously tuned model and do not want to re-run the hyperparameter optimization process, you can use the `evaluators.py` script to run the evaluation of the model. For example : 
 ```
 python evaluators.py --model LEdMLP_DLHO_Boost --dataset abalone --epochs 1 --eval_reps 5 --run_id 26_07_2024T_05_59
 ```
