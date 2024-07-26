@@ -29,8 +29,7 @@ import pandas as pd
 from sklearn.model_selection import RepeatedKFold
 from Models.LWRVFL import LWTEDBP
 from torch.multiprocessing import Pool, set_start_method
-import evaluators
-
+import argparse
 
 
 def classification_eval(true, predict, tag = None , consol=False): 
@@ -159,7 +158,7 @@ def evaluate(dloader , params , n_layers , epochs ,  check_point_loc ,   reps = 
             val_weights = None
 
             for layer_id in range(n_layers) :
-                _, _, _ , _ , layer_train_weights , layer_val_weights = model.train_layer(X=X_train, y=y_train, X_val = X_val, y_val = y_val, params = params[layer_id], train_sample_weight = train_weights , val_sample_weight = val_weights , append = True)
+                _, _, _ , _ , layer_train_weights , layer_val_weights = model.train_layer(X=X_train, y=y_train, X_val = X_val, y_val = y_val, params = params[layer_id], train_sample_weight = train_weights , val_sample_weight = val_weights , append = True, seed = seeds[rep_idx])
 
                 train_weights = layer_train_weights
                 val_weights = layer_val_weights       
@@ -177,7 +176,7 @@ def evaluate(dloader , params , n_layers , epochs ,  check_point_loc ,   reps = 
 
     return np.array(metrics).T.tolist()
 
-def layer_wise_optimization(dataset_name, model_name , bounds , device , run_id , n_trials = 100 , epochs = 200, max_layers = 20 , layer_patience=2 ,  reps=5 , random_seed = 41):
+def layer_wise_optimization(dataset_name, model_name , bounds , device , run_id , n_trials = 100 , epochs = 200, max_layers = 20 , layer_patience=2 , tunning_reps=5 ,  eval_reps= 5, random_seed = 41):
     print(n_trials)
     print(epochs)
     print(f"optimize -> {dataset_name} on  {model_name}")
@@ -206,7 +205,7 @@ def layer_wise_optimization(dataset_name, model_name , bounds , device , run_id 
     for layer_id in range(max_layers): 
         # for each layer find the best parameters 
         best_dict = optimize(configspace_from_map(bounds),
-                        output_loc, optimizer_wraper(loader , model_ref = models ,reps = reps  , train_sample_weight = train_weights , val_sample_weight = val_weights), n_trials = n_trials)
+                        output_loc, optimizer_wraper(loader , model_ref = models ,reps = tunning_reps  , train_sample_weight = train_weights , val_sample_weight = val_weights), n_trials = n_trials)
         layer_params.append(best_dict['params'])
 
         # add the layer with the best found parameters to the model 
@@ -218,7 +217,7 @@ def layer_wise_optimization(dataset_name, model_name , bounds , device , run_id 
             
 
         # calculate the model performance
-        metrics = evaluate(dloader = loader , params = layer_params , n_layers = layer_id+1, epochs = epochs, check_point_loc = check_point_loc , reps= 5 , device =device , console = True , random_seed = random_seed)
+        metrics = evaluate(dloader = loader , params = layer_params , n_layers = layer_id+1, epochs = epochs, check_point_loc = check_point_loc , reps= eval_reps , device =device , console = True , random_seed = random_seed)
         
         # if accuracy is not improved for layer_patience number of layers, stop the layer wise optimization
         if np.mean(metrics[-4]) > best_score :
@@ -228,12 +227,12 @@ def layer_wise_optimization(dataset_name, model_name , bounds , device , run_id 
             layer_buffer += 1
         if layer_buffer >= layer_patience : 
             break
-    
     # remove the layers that did not improve the accuracy
-    layer_params = layer_params[:-layer_buffer]
+    if layer_buffer != 0 : 
+        layer_params = layer_params[:-layer_buffer]
 
     # final evalaution of the model perforamnce 
-    metrics = evaluate(dloader = loader , params = layer_params , n_layers = len(layer_params), epochs = epochs, check_point_loc = check_point_loc , reps= 5 , device =device , console = True , random_seed = random_seed)
+    metrics = evaluate(dloader = loader , params = layer_params , n_layers = len(layer_params), epochs = epochs, check_point_loc = check_point_loc , reps= eval_reps , device =device , console = True , random_seed = random_seed)
 
     params = {
         "target" : np.mean(metrics[-4]) , 
@@ -254,7 +253,7 @@ def layer_wise_optimization(dataset_name, model_name , bounds , device , run_id 
 
     return  metrics 
 
-def box_nodes_layer_wise_optimization(dataset_name, model_name , bounds , device , run_id , n_trials = 100 , epochs = 200, max_layers = 20 , layer_patience=2 ,  reps=5 , random_seed = 41):
+def box_nodes_layer_wise_optimization(dataset_name, model_name , bounds , device , run_id , n_trials = 100 , epochs = 200, max_layers = 20 , layer_patience=2 , tunning_reps=5 ,  eval_reps= 5, random_seed = 41):
     # perform layer wise optimization for the given dataset and model, with the given bounds and hyperparameters.
     # then do another optimization to find the number of nodes in the model. 
     print(n_trials)
@@ -285,7 +284,7 @@ def box_nodes_layer_wise_optimization(dataset_name, model_name , bounds , device
     for layer_id in range(max_layers): 
         # for each layer find the best parameters 
         best_dict = optimize(configspace_from_map(bounds),
-                        output_loc, optimizer_wraper(loader , model_ref = models ,reps = reps  , train_sample_weight = train_weights , val_sample_weight = val_weights), n_trials = n_trials)
+                        output_loc, optimizer_wraper(loader , model_ref = models , reps = tunning_reps  , train_sample_weight = train_weights , val_sample_weight = val_weights), n_trials = n_trials)
         layer_params.append(best_dict['params'])
 
         # add the layer with the best found parameters to the model 
@@ -297,7 +296,7 @@ def box_nodes_layer_wise_optimization(dataset_name, model_name , bounds , device
             
 
         # calculate the model performance
-        metrics = evaluate(dloader = loader , params = layer_params , n_layers = layer_id+1, epochs = epochs, check_point_loc = check_point_loc , reps= 5 , device =device , console = True , random_seed = random_seed)
+        metrics = evaluate(dloader = loader , params = layer_params , n_layers = layer_id+1, epochs = epochs, check_point_loc = check_point_loc , reps= eval_reps , device =device , console = True , random_seed = random_seed)
         
         # if accuracy is not improved for layer_patience number of layers, stop the layer wise optimization
         if np.mean(metrics[-4]) > best_score :
@@ -307,9 +306,11 @@ def box_nodes_layer_wise_optimization(dataset_name, model_name , bounds , device
             layer_buffer += 1
         if layer_buffer >= layer_patience : 
             break
+        
     
     # remove the layers that did not improve the accuracy
-    layer_params = layer_params[:-layer_buffer]
+    if layer_buffer != 0 : 
+        layer_params = layer_params[:-layer_buffer]
     
     
     # do another round of optimization to fine the number of nodes in the model, all layers will have the same number of nodes. 
@@ -319,13 +320,14 @@ def box_nodes_layer_wise_optimization(dataset_name, model_name , bounds , device
     other_param_val = [{param : lp[param] for param in other_param_name} for lp in layer_params]
     
     nodes_best_dict = optimize(configspace_from_map(nodes_bounds),
-                output_loc, nodes_optimizer_wraper(loader , other_param_val , check_point_loc, reps = reps, device=device ), n_trials = 2)
+                output_loc, nodes_optimizer_wraper(loader , other_param_val , check_point_loc, reps = tunning_reps, device=device ), n_trials = 2)
 
 
     node_params = [{**lp, **nodes_best_dict['params']} for lp in layer_params]
 
     # final evalaution of the model perforamnce 
-    metrics = evaluate(dloader = loader , params = node_params , n_layers = len(node_params), epochs = epochs, check_point_loc = check_point_loc , reps= 5 , device =device , console = True , random_seed = random_seed)
+    metrics = evaluate(dloader = loader , params = node_params , n_layers = len(node_params), epochs = epochs, check_point_loc = check_point_loc , reps= eval_reps , device =device , console = True , random_seed = random_seed)
+
 
     params = {
         "target" : np.mean(metrics[-4]) , 
@@ -349,6 +351,29 @@ def box_nodes_layer_wise_optimization(dataset_name, model_name , bounds , device
 
 if __name__ == "__main__" : 
 
+    supported_models = ["LEdMLP_DLHO_Boost", "BLEdMLP_DLHO_Boost"]
+
+    # Define the argument parser
+    parser = argparse.ArgumentParser(description='LayerWise Hyperparameter Optimization Script')
+    # Add arguments
+    parser.add_argument('--dataset', type=str, default=None, nargs = "+" , help='Name of the UCI dataset/s to use')
+    parser.add_argument('--model', type=str, required=True, nargs="+", choices=supported_models, help='Model to use')
+    parser.add_argument('--device', type=str, default='cpu', choices=['cpu', 'cuda'], help='Device to use')
+    parser.add_argument('--n_trials', type=int, default=100, help='Number of trials to run')
+    parser.add_argument('--tunning_reps', type=int, default=5, help='Number of repetitions for Bayesian optimization')
+    parser.add_argument('--eval_reps', type=int, default=5, help='Number of repetitions for evaluation')
+    parser.add_argument('--random_state', type=int, default=41, help='Random state')
+    parser.add_argument('--n_jobs', type=int, default=1, help='Number of jobs to run in parallel')
+    parser.add_argument('--layer_patience', type=int, default=2, help='Number of layers to wait before stopping layer wise optimization')
+    parser.add_argument('--epochs', type=int, default=100, help='Number of epochs to train')
+    parser.add_argument('--max_layers', type=int, default=15, help='Maximum number of layers to train')
+    parser.add_argument('--run_id', type=str, default=None, help='Run ID, set the value only if you want to run multiple optimziation rounds with the same id. Otherwise leave blank')
+
+    # Parse arguments
+    args = parser.parse_args()
+
+    
+
     bounds = [
                     CS.UniformIntegerHyperparameter("nodes",lower=128,upper=1024, default_value=256),
                     CS.UniformFloatHyperparameter("weight_decay",lower=1e-7,upper=1e-2,default_value=1e-5 , log=True),
@@ -361,41 +386,60 @@ if __name__ == "__main__" :
                     CS.Constant("boost_lr",value= 1e-3),
                     ]
 
+    wraper_mape = {
+        "LEdMLP_DLHO_Boost" : layer_wise_optimization, 
+        "BLEdMLP_DLHO_Boost" : box_nodes_layer_wise_optimization
+     }
 
-    datasets = ["abalone" , "arrhythmia"  , "cardiotocography-10clases" , "cardiotocography-3clases" , "chess-krvkp"  , "congressional-voting" , "contrac" , "glass" , "molec-biol-splice" , "monks-3" , "musk-2" ,"oocytes_trisopterus_states_5b" , "spambase" , "statlog-image" , "statlog-landsat" ,"wall-following" , "waveform" , "waveform-noise" , "breast-cancer-wisc-prog" , "breast-tissue" , "conn-bench-sonar-mines-rocks" , "conn-bench-vowel-deterding" , "hill-valley" , "ionosphere" , "iris" , "oocytes_merluccius_nucleus_4d" , "oocytes_merluccius_states_2f" , "oocytes_trisopterus_nucleus_2f" , "oocytes_trisopterus_states_5b" , "parkinsons" , "plant-shape" , "ringnorm" ,  "seeds" , "synthetic-control" , "twonorm" , "vertebral-column-2clases" , "vertebral-column-3clases"]
+    if args.dataset is None :
+        datasets = ["abalone" , "arrhythmia" , "cardiotocography-10clases" , "cardiotocography-3clases" , "chess-krvkp"  , "congressional-voting" , "contrac" , "glass" , "molec-biol-splice" , "monks-3" , "musk-2" ,"oocytes_trisopterus_states_5b" , "spambase" , "statlog-image" , "statlog-landsat" ,"wall-following" , "waveform" , "waveform-noise", "breast-cancer-wisc-prog" , "breast-tissue" , "conn-bench-sonar-mines-rocks" , "conn-bench-vowel-deterding" , "hill-valley" , "ionosphere" , "iris" , "oocytes_merluccius_nucleus_4d" , "oocytes_merluccius_states_2f" , "oocytes_trisopterus_nucleus_2f" , "oocytes_trisopterus_states_5b" , "parkinsons" , "plant-shape" , "ringnorm" ,  "seeds" , "synthetic-control" , "twonorm" , "vertebral-column-2clases" , "vertebral-column-3clases"]
+    else : 
+        datasets = args.dataset
 
-    # datasets = ['abalone']
-
-    model_name= "P_LWTEDBP_DLHO_Boost_Box_nodes" 
-
+    if all([model in supported_models for model in args.model]) :
+        models = args.model
+    else :
+        Exception(f"Model {args.model} not supported, supported models are {supported_models}")
     
-    n_trials = 1
-    layer_patience = 2 
-    epochs = 100
-    max_layers = 15
-    random_state= 41    
-    reps = 1
-    run_id =  datetime.datetime.now().strftime("%d_%m_%YT_%H_%M")
+    n_trials = args.n_trials
+    random_state= args.random_state
+
+    layer_patience = args.layer_patience
+    epochs = args.epochs
+    max_layers = args.max_layers
+
+    if args.run_id is None : 
+        run_id =  datetime.datetime.now().strftime("%d_%m_%YT_%H_%M")
+    else : 
+        run_id = args.run_id
+        
     session_id = datetime.datetime.now().strftime("%d_%m_%YT_%H_%M")
 
     print(f"Run ID : {run_id}")
     print(f"Session ID : {session_id}")
 
-    pool = Pool(8)
+    if not os.path.exists("results") : 
+        os.makedirs("results")
+
+    pool = Pool(args.n_jobs)
     pool_requests = {}
     for idx,  dataset_name in enumerate(datasets) : 
-        device = f"cuda:{idx%2}"
+        if args.device == 'cuda' :
+            device = f"cuda:{idx%2}"
+        else : 
+            device = args.device
         pool_requests[dataset_name] = []
-        try : 
-            pool_res = pool.apply_async(box_nodes_layer_wise_optimization, (dataset_name , model_name , bounds , device, run_id, n_trials , epochs , max_layers ,layer_patience, reps, random_state ) )
-            pool_requests[dataset_name].append(pool_res)
-        except Exception as e : 
-            print(e)
+        for model_name in models :
+            try : 
+                pool_res = pool.apply_async(wraper_mape[model_name], (dataset_name , model_name , bounds , device, run_id, n_trials , epochs , max_layers ,layer_patience, args.tunning_reps , args.eval_reps, random_state ) )
+                pool_requests[dataset_name].append(pool_res)
+            except Exception as e : 
+                print(e)
     
     total_res = pd.DataFrame(columns=["train_acc",  "train_f1", "train_precision",  "train_recall",  "val_acc",  "val_f1", "val_precision",  "val_recall" , "test_acc", "test_f1", "test_precision", "test_recall", "model" , "dataset" ,  "duration"  ])
     
     for dataset_name in pool_requests.keys(): 
-        for request in pool_requests[dataset_name] :
+        for request, model_name in zip(pool_requests[dataset_name], models) :
             try : 
                 request.wait()
                 result =  request.get()
@@ -415,7 +459,6 @@ if __name__ == "__main__" :
                                               np.expand_dims(test_precision ,1),
                                               np.expand_dims(test_recall ,1),
                                               ) , 1)
-                    
                     results_df = pd.DataFrame(res_con, columns = ["train_acc",  "train_f1", "train_precision",  "train_recall",  "val_acc",  "val_f1", "val_precision",  "val_recall" , "test_acc", "test_f1", "test_precision", "test_recall" ])
                     
                     results_df['model'] = model_name
